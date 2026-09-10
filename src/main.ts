@@ -8,7 +8,6 @@ import { getEditorContext } from "./utils/context";
 import { actionIsAvailable, mergeSettings } from "./services/actionStore";
 import { customActionToQuickAction } from "./utils/customAction";
 import { DatePickerModal } from "./ui/DatePickerModal";
-import { FormModal } from "./ui/FormModal";
 import { ImportPreviewModal } from "./ui/ImportPreviewModal";
 import { ActionEngine } from "./services/actionEngine";
 import { getSlashQuery, removeSlashQuery } from "./utils/slash";
@@ -55,7 +54,7 @@ export default class ContextFlowPlugin extends Plugin {
   setActionFavorite(id: string, favorite: boolean): void { const setting = this.settings.actions.find((item) => item.id === id); if (setting) setting.favorite = favorite; const custom = this.settings.customActions.find((item) => item.id === id); if (custom) custom.favorite = favorite; }
   exportActionPackage(): void {
     const text = serializePackage(createPackage("ContextFlow actiepakket", this.settings.customActions, this.settings.workflows));
-    const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); link.download = "contextflow-action-package.json"; link.click(); URL.revokeObjectURL(link.href); new Notice("Actiepakket geëxporteerd.");
+    const link = document.body.createEl("a"); link.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); link.download = "contextflow-action-package.json"; link.click(); link.remove(); new Notice("Action package exported.");
   }
   async importActionPackage(text: string): Promise<void> {
     const parsed = parsePackage(text); if (!parsed.package) { new Notice(parsed.errors[0] ?? "Ongeldig actiepakket."); return; }
@@ -96,7 +95,7 @@ export default class ContextFlowPlugin extends Plugin {
     if (conditions.requiresNoSelection && hasSelection) return false;
     if (conditions.folder && !file.path.startsWith(conditions.folder)) return false;
     if (conditions.tag && !tags.includes(conditions.tag.startsWith("#") ? conditions.tag : `#${conditions.tag}`)) return false;
-    if (conditions.property) { const value = cache?.frontmatter?.[conditions.property.key]; if (value === undefined || (conditions.property.value !== undefined && String(value) !== conditions.property.value)) return false; }
+    if (conditions.property) { const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined; const value: unknown = frontmatter?.[conditions.property.key]; if (value === undefined || (conditions.property.value !== undefined && String(value) !== conditions.property.value)) return false; }
     if (conditions.dailyNoteOnly && !/^\d{4}[-_]\d{2}[-_]\d{2}/.test(file.basename)) return false;
     if (conditions.taskOnly && !/^\s*- \[[ xX]\]\s/.test(view.editor.getLine(view.editor.getCursor().line))) return false;
     if (conditions.desktopOnly && Platform.isMobile) return false;

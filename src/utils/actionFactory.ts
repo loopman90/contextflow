@@ -1,4 +1,4 @@
-import type { ActionCategory, ActionContext, ActionHandler, QuickAction } from "../models";
+import type { ActionCategory, ActionHandler, QuickAction } from "../models";
 import { formatDate, formatDateTime, formatTime } from "./date";
 
 function insert(text: string, message: string, selectInsertedText = false): ActionHandler {
