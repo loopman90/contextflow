@@ -90,6 +90,15 @@ export interface CalendarEvent {
   recurrence?: { frequency: "daily" | "weekly" | "monthly"; interval: number; until?: string };
 }
 
+export type CaptureType = "note" | "task" | "idea" | "meeting" | "decision" | "log" | "custom";
+
+export interface CaptureDefinition { id: string; name: string; type: CaptureType; targetPath?: string; targetFolder?: string; heading?: string; position: "top" | "bottom" | "heading" | "daily"; template: string; enabled: boolean; }
+
+export interface ActionHistoryEntry { id: string; actionId: string; actionName: string; type: "action" | "workflow" | "capture"; timestamp: string; fileName?: string; status: "success" | "failed"; undoAvailable: boolean; }
+
+export interface ActionProfile { id: string; name: string; enabledActionIds: string[]; enabledWorkflowIds: string[]; enabledCaptureIds: string[]; order: number; }
+export interface TextAbbreviation { id: string; trigger: string; actionId: string; confirmation: boolean; caseSensitive: boolean; folders?: string[]; enabled: boolean; }
+
 export interface QuickAction {
   id: ActionId;
   name: string;
@@ -153,6 +162,16 @@ export interface ContextFlowSettings {
   slashShowFavorites: boolean;
   slashMaxResults: number;
   language: "en" | "nl";
+  captures: CaptureDefinition[];
+  profiles: ActionProfile[];
+  activeProfileId?: string;
+  history: ActionHistoryEntry[];
+  historyEnabled: boolean;
+  maxHistoryItems: number;
+  abbreviations: TextAbbreviation[];
+  debugLogging: boolean;
+  onboardingCompleted: boolean;
+  profilePriority: "folder-tag-property" | "property-tag-folder";
 }
 
 export const DEFAULT_SETTINGS: ContextFlowSettings = {
@@ -174,5 +193,15 @@ export const DEFAULT_SETTINGS: ContextFlowSettings = {
   slashTrigger: "/",
   slashShowFavorites: true,
   slashMaxResults: 12
-  ,language: "en"
+  ,language: "en",
+  captures: [],
+  profiles: [],
+  activeProfileId: undefined,
+  history: [],
+  historyEnabled: true,
+  maxHistoryItems: 50,
+  abbreviations: [],
+  debugLogging: false,
+  onboardingCompleted: false,
+  profilePriority: "folder-tag-property"
 };

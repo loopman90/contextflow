@@ -2,6 +2,8 @@
 
 ContextFlow is a local-first Quick Insert menu for Obsidian. From any Markdown note, use the command palette, editor context menu, ribbon action, or a configurable hotkey to insert useful Markdown actions quickly.
 
+Documentation website: [contextflow documentation](https://loopman90.github.io/contextflow/).
+
 ## Getting started
 
 ContextFlow is designed to be useful without a complicated setup:

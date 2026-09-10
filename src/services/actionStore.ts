@@ -10,6 +10,10 @@ export function mergeSettings(saved: Partial<ContextFlowSettings> | null | undef
     customActions: saved?.customActions ?? [],
     workflows: saved?.workflows ?? [],
     categories: saved?.categories ?? [],
+    captures: saved?.captures ?? [],
+    profiles: saved?.profiles ?? [],
+    history: saved?.history ?? [],
+    abbreviations: saved?.abbreviations ?? [],
     actions: actions.map((action) => ({ ...action, ...savedById.get(action.id) })),
     recentActionIds: Array.from(new Set(saved?.recentActionIds ?? [])).slice(0, saved?.maxRecentActions ?? DEFAULT_SETTINGS.maxRecentActions)
   };

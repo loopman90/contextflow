@@ -2,6 +2,7 @@ import { Modal, Notice, Setting } from "obsidian";
 import type { App } from "obsidian";
 import type { ActionCategory, CustomActionDefinition, SelectionBehavior } from "../models";
 import { validateAction } from "../utils/validation";
+import { renderTemplatePreview } from "./ActionPreview";
 
 export class ActionEditorModal extends Modal {
   private readonly existing?: CustomActionDefinition;
@@ -17,7 +18,8 @@ export class ActionEditorModal extends Modal {
     const el = this.contentEl; el.empty();
     new Setting(el).setName("Name").addText((input) => input.setValue(this.name).onChange((value) => { this.name = value; }));
     new Setting(el).setName("Description").addText((input) => input.setValue(this.description).onChange((value) => { this.description = value; }));
-    new Setting(el).setName("Content or template").setDesc("For example {{date}}, {{selection}} or {{input:project}}.").addTextArea((input) => input.setValue(this.template).onChange((value) => { this.template = value; }));
+    new Setting(el).setName("Content or template").setDesc("For example {{date}}, {{selection}} or {{input:project}}.").addTextArea((input) => input.setValue(this.template).onChange((value) => { this.template = value; preview(); }));
+    const previewEl = el.createDiv({ cls: "contextflow-live-preview" }); const preview = () => renderTemplatePreview(previewEl, this.template); preview();
     new Setting(el).setName("Selection behavior").addDropdown((dropdown) => dropdown.addOptions({ insert: "Insert", replace: "Replace", before: "Before selection", after: "After selection", wrap: "Wrap" }).setValue(this.behavior).onChange((value) => { this.behavior = value as SelectionBehavior; }));
     new Setting(el).setName("Save").addButton((button) => button.setButtonText("Save").setCta().onClick(() => this.save()));
   }

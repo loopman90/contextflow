@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Menu, Notice, Platform, Plugin } from "obsidian";
+import { Editor, MarkdownView, Menu, Notice, Platform, Plugin, TFile } from "obsidian";
 import { ContextFlowSettingTab } from "./settings/ContextFlowSettingTab";
 import { QuickInsertModal } from "./ui/QuickInsertModal";
 import type { ActionContext, ContextFlowSettings, QuickAction } from "./models";
@@ -16,6 +16,7 @@ import { createPackage, mergePackage, parsePackage, serializePackage } from "./s
 import { runWorkflow } from "./services/workflow";
 import { CalendarView, CALENDAR_VIEW_TYPE } from "./views/CalendarView";
 import { actionTranslations } from "./i18n";
+import { QuickCaptureModal, defaultCaptures, type CaptureInput } from "./ui/QuickCaptureModal";
 
 export default class ContextFlowPlugin extends Plugin {
   settings: ContextFlowSettings = DEFAULT_SETTINGS;
@@ -25,6 +26,8 @@ export default class ContextFlowPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    if (!this.settings.captures.length) this.settings.captures = defaultCaptures();
+    if (!this.settings.onboardingCompleted) { new Notice("Welcome to ContextFlow. Open Settings for a guided start, or use Open Quick Insert in a Markdown note.", 8000); this.settings.onboardingCompleted = true; void this.saveSettings(); }
     const en = this.settings.language === "en";
     this.actionEngine = new ActionEngine(this.app, this.settings, () => this.saveSettings(), (id) => this.recordUsage(id));
     this.addCommand({ id: "open-quick-insert", name: en ? "Open Quick Insert" : "Quick Insert openen", editorCallback: (editor) => { const view = this.activeMarkdownView(); if (view) this.openQuickInsert(editor, view); } });
@@ -34,6 +37,7 @@ export default class ContextFlowPlugin extends Plugin {
     this.addCommand({ id: "insert-task", name: en ? "Insert task" : "Taak invoegen", editorCallback: (editor) => { const view = this.activeMarkdownView(); if (view) this.executeById("task", editor, view); } });
     this.addCommand({ id: "run-favorite", name: en ? "Run favorite Quick Insert action" : "Favoriete Quick Insert-actie uitvoeren", editorCallback: (editor) => { const view = this.activeMarkdownView(); if (view) this.openFavorite(editor, view); } });
     this.addCommand({ id: "open-date-picker", name: en ? "Open date picker" : "Datumkiezer openen", editorCallback: (editor) => { const view = this.activeMarkdownView(); if (view) new DatePickerModal(this.app, (value) => editor.replaceSelection(value)).open(); } });
+    this.addCommand({ id: "quick-capture", name: en ? "Quick Capture" : "Quick Capture", callback: () => this.openQuickCapture() });
     this.addSettingTab(new ContextFlowSettingTab(this));
     this.registerView(CALENDAR_VIEW_TYPE, (leaf) => new CalendarView(leaf, this));
     this.addCommand({ id: "open-calendar", name: "Lokale kalender openen", callback: () => { if (!this.settings.calendarEnabled) { new Notice("De optionele kalender staat uit in Instellingen."); return; } void this.app.workspace.getLeaf(true).setViewState({ type: CALENDAR_VIEW_TYPE, active: true }); } });
@@ -63,6 +67,17 @@ export default class ContextFlowPlugin extends Plugin {
   }
   private activeMarkdownView(): MarkdownView | null { return this.app.workspace.getActiveViewOfType(MarkdownView); }
 
+  private openQuickCapture(): void { new QuickCaptureModal(this.app, this.settings.captures.filter((capture) => capture.enabled), (input) => { void this.saveCapture(input); }).open(); }
+  private async saveCapture(input: CaptureInput): Promise<void> {
+    const active = this.activeMarkdownView()?.file; const path = input.targetPath.trim() || input.definition.targetPath || active?.path;
+    if (!path) { new Notice("Open a note or configure a target note first."); return; }
+    const normalized = path.endsWith(".md") ? path : `${path}.md`; const text = input.definition.template.replace("{{title}}", input.title).replace("{{body}}", input.body).replace("{{tags}}", input.tags).replace("{{date}}", new Date().toISOString().slice(0, 10));
+    const content = `${text}${input.tags ? ` ${input.tags}` : ""}\n`; const existing = this.app.vault.getAbstractFileByPath(normalized);
+    if (existing instanceof TFile) { if (input.definition.position === "top") await this.app.vault.modify(existing, `${content}\n${await this.app.vault.read(existing)}`); else await this.app.vault.append(existing, content); }
+    else { const folder = normalized.split("/").slice(0, -1).join("/"); if (folder && !this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder); await this.app.vault.create(normalized, content); }
+    new Notice("Capture saved.");
+  }
+
   private addEditorMenu(menu: Menu, editor: Editor, view: MarkdownView): void {
     menu.addItem((item) => item.setTitle("Quick Insert openen").setIcon("zap").onClick(() => this.openQuickInsert(editor, view)));
   }
@@ -79,7 +94,8 @@ export default class ContextFlowPlugin extends Plugin {
   }
 
   private visibleActions(hasSelection: boolean, view: MarkdownView): QuickAction[] {
-    const actions = this.allActions().filter((action) => !this.settings.showContextualActions || actionIsAvailable(action, hasSelection, this.settings.showDisabledActions));
+    const profile = this.settings.profiles.find((item) => item.id === this.settings.activeProfileId);
+    const actions = this.allActions().filter((action) => (!profile || profile.enabledActionIds.length === 0 || profile.enabledActionIds.includes(action.id)) && (!this.settings.showContextualActions || actionIsAvailable(action, hasSelection, this.settings.showDisabledActions)));
     const recent = new Map(this.settings.recentActionIds.map((id, index) => [id, index]));
     return actions.filter((action) => this.matchesContext(action, hasSelection, view)).sort((a, b) => {
       if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
@@ -115,10 +131,16 @@ export default class ContextFlowPlugin extends Plugin {
     const inFrontmatter = editor.getLine(0) === "---" && before.indexOf("---") < 0; const inlineCode = (before.match(/`/g) ?? []).length % 2 === 1;
     if (context.inCodeBlock || inFrontmatter || inlineCode) return;
     const query = getSlashQuery(editor, this.settings.slashTrigger);
+    this.handleAbbreviation(editor, view);
     if (!query) { if (this.slashModal) { this.slashModal.close(); this.slashModal = undefined; } return; }
     const actions = this.visibleActions(context.hasSelection, view).slice(0, this.settings.slashMaxResults);
     if (!this.slashModal) { this.slashModal = new SlashMenuModal(this.app, actions, query.query, (action) => { const current = getSlashQuery(editor, this.settings.slashTrigger); if (current) removeSlashQuery(editor, current); this.execute(action, editor, view); }, () => { this.slashModal = undefined; }, this.settings.language); this.slashModal.open(); }
     else this.slashModal.update(query.query, actions);
+  }
+
+  private handleAbbreviation(editor: Editor, view: MarkdownView): void {
+    const line = editor.getLine(editor.getCursor().line); const cursor = editor.getCursor(); const before = line.slice(0, cursor.ch); const match = this.settings.abbreviations.filter((item) => item.enabled).sort((a, b) => b.trigger.length - a.trigger.length).find((item) => item.caseSensitive ? before.endsWith(item.trigger) : before.toLocaleLowerCase().endsWith(item.trigger.toLocaleLowerCase())); if (!match) return;
+    const action = this.allActions().find((item) => item.id === match.actionId); if (!action) return; if (match.folders?.length && !match.folders.some((folder) => view.file?.path.startsWith(folder))) return; editor.replaceRange("", { line: cursor.line, ch: cursor.ch - match.trigger.length }, cursor); this.execute(action, editor, view);
   }
 
   private executeWorkflow(id: string, context: ActionContext, editor: Editor): void {
@@ -130,5 +152,10 @@ export default class ContextFlowPlugin extends Plugin {
 
   private recordUsage(id: string): void {
     this.settings.recentActionIds = [id, ...this.settings.recentActionIds.filter((item) => item !== id)].slice(0, this.settings.maxRecentActions);
+    if (this.settings.historyEnabled) {
+      const action = this.allActions().find((item) => item.id === id);
+      const entry = { id: `history-${Date.now()}`, actionId: id, actionName: action?.name ?? id, type: id.startsWith("workflow:") ? "workflow" as const : "action" as const, timestamp: new Date().toISOString(), status: "success" as const, undoAvailable: false };
+      this.settings.history = [entry, ...this.settings.history].slice(0, this.settings.maxHistoryItems);
+    }
   }
 }

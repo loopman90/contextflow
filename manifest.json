@@ -1,8 +1,8 @@
 {
   "id": "contextflow",
   "name": "ContextFlow",
-  "version": "0.1.1",
-  "minAppVersion": "1.5.0",
+  "version": "0.1.2",
+  "minAppVersion": "1.13.0",
   "description": "A local, context-aware Quick Insert menu for fast Markdown actions.",
   "author": "ContextFlow contributors",
   "isDesktopOnly": false
