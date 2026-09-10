@@ -24,3 +24,4 @@
 .contextflow-calendar-event { margin-top: 5px; padding: 3px 4px; border-radius: var(--radius-s); background: var(--interactive-accent); color: var(--text-on-accent); font-size: var(--font-ui-smaller); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .contextflow-workflow-step { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); margin-bottom: 5px; }
 .contextflow-workflow-step select { flex: 1; }
+.contextflow-help-text { max-width: 720px; color: var(--text-muted); line-height: 1.55; }

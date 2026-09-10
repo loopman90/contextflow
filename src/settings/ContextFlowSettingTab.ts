@@ -13,6 +13,9 @@ export class ContextFlowSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     const language = this.plugin.settings.language;
     containerEl.empty();
+    new Setting(containerEl).setName(language === "en" ? "Start here" : "Begin hier").setHeading();
+    containerEl.createEl("p", { cls: "contextflow-help-text", text: language === "en" ? "Open Quick Insert from the command palette, the editor context menu, or the ribbon button. You can also type / in a Markdown note. Select text first when an action says it needs a selection." : "Open Quick Insert via het command palette, het rechtermuisknopmenu of de ribbonknop. Je kunt ook / typen in een Markdown-notitie. Selecteer eerst tekst wanneer een actie een selectie nodig heeft." });
+    containerEl.createEl("p", { cls: "contextflow-help-text", text: language === "en" ? "Actions do one thing. Workflows combine actions. Action packages are for backup and sharing. Start with the built-in actions; advanced options can be added later." : "Acties doen één ding. Workflows combineren acties. Actiepakketten zijn voor back-ups en delen. Begin met de standaardacties; geavanceerde opties kun je later toevoegen." });
     containerEl.createEl("p", { text: t("settingsDescription", language) });
     new Setting(containerEl).setName(t("general", language)).setHeading();
     new Setting(containerEl).setName(t("language", language)).setDesc(t("languageDescription", language)).addDropdown((dropdown) => dropdown.addOptions({ en: t("english", language), nl: t("dutch", language) }).setValue(language).onChange(async (value) => { this.plugin.settings.language = value as "en" | "nl"; await this.plugin.saveSettings(); this.display(); }));
