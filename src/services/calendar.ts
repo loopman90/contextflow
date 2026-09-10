@@ -1,0 +1,14 @@
+import type { CalendarEvent } from "../models";
+
+export function eventToIcs(event: CalendarEvent): string { return [`BEGIN:VEVENT`, `UID:${event.id}`, `DTSTART:${toIcsDate(event.start)}`, event.end ? `DTEND:${toIcsDate(event.end)}` : "", `SUMMARY:${escapeIcs(event.title)}`, event.location ? `LOCATION:${escapeIcs(event.location)}` : "", event.description ? `DESCRIPTION:${escapeIcs(event.description)}` : "", event.recurrence ? `RRULE:FREQ=${event.recurrence.frequency.toUpperCase()};INTERVAL=${event.recurrence.interval}${event.recurrence.until ? `;UNTIL=${toIcsDate(event.recurrence.until)}` : ""}` : "", `END:VEVENT`].filter(Boolean).join("\r\n"); }
+
+export function eventsToIcs(events: CalendarEvent[]): string { return `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ContextFlow//EN\r\n${events.map(eventToIcs).join("\r\n")}\r\nEND:VCALENDAR`; }
+
+export function parseIcs(text: string): CalendarEvent[] { return text.split(/BEGIN:VEVENT\s*/).slice(1).map((block, index) => { const value = (key: string) => block.match(new RegExp(`^${key}(?:;[^:]*)?:(.+)$`, "m"))?.[1]?.trim(); const start = fromIcsDate(value("DTSTART") ?? ""); return { id: value("UID") ?? `ics-${Date.now()}-${index}`, title: unescapeIcs(value("SUMMARY") ?? "Zonder titel"), start, end: fromIcsDate(value("DTEND") ?? ""), location: unescapeIcs(value("LOCATION") ?? ""), description: unescapeIcs(value("DESCRIPTION") ?? "") }; }).filter((event) => Boolean(event.start)); }
+
+export function expandRecurrence(event: CalendarEvent, from: Date, to: Date): CalendarEvent[] { if (!event.recurrence) return [event]; const result: CalendarEvent[] = []; const cursor = new Date(event.start); const until = event.recurrence.until ? new Date(event.recurrence.until) : to; while (cursor <= to && cursor <= until) { if (cursor >= from) result.push({ ...event, id: `${event.id}-${cursor.toISOString()}`, start: cursor.toISOString() }); if (event.recurrence.frequency === "daily") cursor.setDate(cursor.getDate() + event.recurrence.interval); else if (event.recurrence.frequency === "weekly") cursor.setDate(cursor.getDate() + 7 * event.recurrence.interval); else cursor.setMonth(cursor.getMonth() + event.recurrence.interval); } return result; }
+
+function toIcsDate(value: string): string { return value.replace(/[-:TZ.]/g, "").slice(0, 15) + "Z"; }
+function fromIcsDate(value: string): string { if (!value) return ""; const clean = value.replace(/Z$/, ""); return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T${clean.slice(9, 11) || "00"}:${clean.slice(11, 13) || "00"}:00.000Z`; }
+function escapeIcs(value: string): string { return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;"); }
+function unescapeIcs(value: string): string { return value.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\"); }

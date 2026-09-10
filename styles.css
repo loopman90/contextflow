@@ -1,0 +1,26 @@
+.contextflow-modal { width: min(620px, 92vw); }
+.contextflow-modal-hint { color: var(--text-muted); font-size: var(--font-ui-small); margin-bottom: 10px; }
+.contextflow-search { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); background: var(--background-primary); color: var(--text-normal); }
+.contextflow-search:focus { border-color: var(--interactive-accent); box-shadow: 0 0 0 2px var(--background-modifier-border-focus); }
+.contextflow-action-list { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; max-height: min(52vh, 440px); overflow-y: auto; }
+.contextflow-action-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-s); cursor: pointer; min-height: 42px; }
+.contextflow-action-row:hover, .contextflow-action-row.is-selected { background: var(--background-modifier-hover); }
+.contextflow-action-icon { color: var(--interactive-accent); display: flex; }
+.contextflow-action-copy { min-width: 0; flex: 1; }
+.contextflow-action-name { color: var(--text-normal); font-weight: var(--font-medium); }
+.contextflow-action-description { color: var(--text-muted); font-size: var(--font-ui-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contextflow-action-category { color: var(--text-faint); font-size: var(--font-ui-smaller); }
+.contextflow-empty { color: var(--text-muted); padding: 18px 10px; text-align: center; }
+@media (max-width: 520px) { .contextflow-modal { width: 92vw; } .contextflow-action-category { display: none; } }
+@media (prefers-reduced-motion: reduce) { .contextflow-action-row { transition: none; } }
+.contextflow-calendar { padding: 12px; }
+.contextflow-calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.contextflow-calendar-header h2 { font-size: var(--font-ui-medium); margin: 0; }
+.contextflow-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(28px, 1fr)); gap: 4px; }
+.contextflow-calendar-weekday { color: var(--text-muted); font-size: var(--font-ui-smaller); text-align: center; padding: 6px 0; }
+.contextflow-calendar-day { border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); min-height: 42px; padding: 7px; cursor: pointer; }
+.contextflow-calendar-day:hover, .contextflow-calendar-day:focus { background: var(--background-modifier-hover); border-color: var(--interactive-accent); outline: none; }
+.contextflow-calendar-day.is-empty { border-color: transparent; cursor: default; }
+.contextflow-calendar-event { margin-top: 5px; padding: 3px 4px; border-radius: var(--radius-s); background: var(--interactive-accent); color: var(--text-on-accent); font-size: var(--font-ui-smaller); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contextflow-workflow-step { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); margin-bottom: 5px; }
+.contextflow-workflow-step select { flex: 1; }

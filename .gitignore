@@ -1,0 +1,14 @@
+node_modules/
+main.js
+main.js.map
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+coverage/
+.cache/
+tmp/
+temp/
+.vscode/
+.idea/
