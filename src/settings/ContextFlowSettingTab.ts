@@ -1,4 +1,5 @@
 import { Notice, PluginSettingTab, Setting } from "obsidian";
+import type { SettingDefinitionItem, SettingGroup } from "obsidian";
 import type ContextFlowPlugin from "../main";
 import { ActionEditorModal } from "../ui/ActionEditorModal";
 import { WorkflowEditorModal } from "../ui/WorkflowEditorModal";
@@ -9,8 +10,11 @@ export class ContextFlowSettingTab extends PluginSettingTab {
 
   constructor(plugin: ContextFlowPlugin) { super(plugin.app, plugin); this.plugin = plugin; }
 
-  display(): void {
-    const { containerEl } = this;
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [{ type: "group", heading: "General", items: [{ name: "Configuration", searchable: false, render: (_setting: Setting, group: SettingGroup) => this.renderLegacy(group.listEl) }] }];
+  }
+
+  private renderLegacy(containerEl: HTMLElement): void {
     const language = this.plugin.settings.language;
     containerEl.empty();
     new Setting(containerEl).setName(language === "en" ? "Start here" : "Begin hier").setHeading();
@@ -18,7 +22,7 @@ export class ContextFlowSettingTab extends PluginSettingTab {
     containerEl.createEl("p", { cls: "contextflow-help-text", text: language === "en" ? "Actions do one thing. Workflows combine actions. Action packages are for backup and sharing. Start with the built-in actions; advanced options can be added later." : "Acties doen één ding. Workflows combineren acties. Actiepakketten zijn voor back-ups en delen. Begin met de standaardacties; geavanceerde opties kun je later toevoegen." });
     containerEl.createEl("p", { text: t("settingsDescription", language) });
     new Setting(containerEl).setName(t("general", language)).setHeading();
-    new Setting(containerEl).setName(t("language", language)).setDesc(t("languageDescription", language)).addDropdown((dropdown) => dropdown.addOptions({ en: t("english", language), nl: t("dutch", language) }).setValue(language).onChange(async (value) => { this.plugin.settings.language = value as "en" | "nl"; await this.plugin.saveSettings(); this.display(); }));
+    new Setting(containerEl).setName(t("language", language)).setDesc(t("languageDescription", language)).addDropdown((dropdown) => dropdown.addOptions({ en: t("english", language), nl: t("dutch", language) }).setValue(language).onChange(async (value) => { this.plugin.settings.language = value as "en" | "nl"; await this.plugin.saveSettings(); this.update(); }));
     new Setting(containerEl).setName(t("quickInsert", language)).setHeading();
     new Setting(containerEl).setName(t("slashMenu", language)).setHeading();
     new Setting(containerEl).setName(t("slashMenuEnabled", language)).setDesc(t("slashMenuDescription", language)).addToggle((toggle) => toggle.setValue(this.plugin.settings.slashMenuEnabled).onChange(async (value) => { this.plugin.settings.slashMenuEnabled = value; await this.plugin.saveSettings(); }));
@@ -35,7 +39,7 @@ export class ContextFlowSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName(language === "en" ? "Profile matching priority" : "Prioriteit profielregels").setDesc(language === "en" ? "Controls which automatic profile rule wins when several rules match." : "Bepaalt welke automatische profielregel wint wanneer meerdere regels overeenkomen.").addDropdown((dropdown) => dropdown.addOptions({ "folder-tag-property": language === "en" ? "Folder → tag → property" : "Map → tag → property", "property-tag-folder": language === "en" ? "Property → tag → folder" : "Property → tag → map" }).setValue(this.plugin.settings.profilePriority).onChange(async (value) => { this.plugin.settings.profilePriority = value as "folder-tag-property" | "property-tag-folder"; await this.plugin.saveSettings(); }));
     new Setting(containerEl).setName(language === "en" ? "Diagnostic logging" : "Diagnostische logging").setDesc(language === "en" ? "Off by default. Logs technical state only and never note content." : "Standaard uit. Logt alleen technische status en nooit notitie-inhoud.").addToggle((toggle) => toggle.setValue(this.plugin.settings.debugLogging).onChange(async (value) => { this.plugin.settings.debugLogging = value; await this.plugin.saveSettings(); }));
     new Setting(containerEl).setName(t("actions", language)).setHeading();
-    new Setting(containerEl).setName(language === "en" ? "Add custom action" : "Eigen actie toevoegen").setDesc(language === "en" ? "Create a local Markdown action with variables." : "Maak een lokale actie met Markdown en variabelen.").addButton((button) => button.setButtonText(language === "en" ? "New action" : "Nieuwe actie").setCta().onClick(() => new ActionEditorModal(this.app, (action) => { this.plugin.settings.customActions.push(action); void this.plugin.saveSettings(); this.display(); }).open()));
+    new Setting(containerEl).setName(language === "en" ? "Add custom action" : "Eigen actie toevoegen").setDesc(language === "en" ? "Create a local Markdown action with variables." : "Maak een lokale actie met Markdown en variabelen.").addButton((button) => button.setButtonText(language === "en" ? "New action" : "Nieuwe actie").setCta().onClick(() => new ActionEditorModal(this.app, (action) => { this.plugin.settings.customActions.push(action); void this.plugin.saveSettings(); this.update(); }).open()));
     this.plugin.allActions().forEach((action) => {
       new Setting(containerEl).setName(action.name).setDesc(action.description)
         .addToggle((toggle) => toggle.setValue(action.enabled).setTooltip("Actie inschakelen").onChange(async (value) => { this.plugin.setActionEnabled(action.id, value); await this.plugin.saveSettings(); }))
@@ -45,7 +49,7 @@ export class ContextFlowSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName(t("mobileToolbar", language)).setDesc(language === "en" ? "Register an extra command for mobile access." : "Registreer een extra command voor snelle mobiele toegang.").addToggle((toggle) => toggle.setValue(this.plugin.settings.mobileToolbar).onChange(async (value) => { this.plugin.settings.mobileToolbar = value; await this.plugin.saveSettings(); }));
     new Setting(containerEl).setName(t("calendar", language)).setDesc(language === "en" ? "Enable the local calendar view. There is no external sync." : "Activeer de lokale kalenderweergave. Er is geen externe synchronisatie.").addToggle((toggle) => toggle.setValue(this.plugin.settings.calendarEnabled).onChange(async (value) => { this.plugin.settings.calendarEnabled = value; await this.plugin.saveSettings(); }));
     new Setting(containerEl).setName(t("packages", language)).setHeading();
-    new Setting(containerEl).setName(language === "en" ? "Add workflow" : "Workflow toevoegen").setDesc(language === "en" ? "Combine actions into one executable workflow." : "Combineer acties tot één uitvoerbare stap.").addButton((button) => button.setButtonText(language === "en" ? "New workflow" : "Nieuwe workflow").setCta().onClick(() => new WorkflowEditorModal(this.app, this.plugin.allActions().filter((action) => !action.id.startsWith("workflow:")), (workflow) => { this.plugin.settings.workflows.push(workflow); void this.plugin.saveSettings(); this.display(); }).open()));
+    new Setting(containerEl).setName(language === "en" ? "Add workflow" : "Workflow toevoegen").setDesc(language === "en" ? "Combine actions into one executable workflow." : "Combineer acties tot één uitvoerbare stap.").addButton((button) => button.setButtonText(language === "en" ? "New workflow" : "Nieuwe workflow").setCta().onClick(() => new WorkflowEditorModal(this.app, this.plugin.allActions().filter((action) => !action.id.startsWith("workflow:")), (workflow) => { this.plugin.settings.workflows.push(workflow); void this.plugin.saveSettings(); this.update(); }).open()));
     new Setting(containerEl).setName(language === "en" ? "Export actions and workflows" : "Acties en workflows exporteren").setDesc(language === "en" ? "Export local ContextFlow configuration as validated JSON." : "Exporteer ContextFlow-configuratie als gevalideerd JSON-bestand.").addButton((button) => button.setButtonText(t("export", language)).onClick(() => this.plugin.exportActionPackage()));
     new Setting(containerEl).setName(language === "en" ? "Import action package" : "Actiepakket importeren").setDesc(language === "en" ? "Import JSON; conflicting existing items are not overwritten." : "Importeer JSON; bestaande conflicterende onderdelen worden niet overschreven.").addButton((button) => button.setButtonText(t("import", language)).onClick(() => {
       const input = containerEl.createEl("input", { attr: { type: "file", accept: "application/json,.json" } }); input.addEventListener("change", () => { const file = input.files?.[0]; if (!file) return; const reader = new FileReader(); reader.addEventListener("load", () => { if (typeof reader.result === "string") void this.plugin.importActionPackage(reader.result); }); reader.readAsText(file); input.remove(); }); input.click();
