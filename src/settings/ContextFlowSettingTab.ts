@@ -13,7 +13,6 @@ export class ContextFlowSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     const language = this.plugin.settings.language;
     containerEl.empty();
-    new Setting(containerEl).setName("ContextFlow").setHeading();
     containerEl.createEl("p", { text: t("settingsDescription", language) });
     new Setting(containerEl).setName(t("general", language)).setHeading();
     new Setting(containerEl).setName(t("language", language)).setDesc(t("languageDescription", language)).addDropdown((dropdown) => dropdown.addOptions({ en: t("english", language), nl: t("dutch", language) }).setValue(language).onChange(async (value) => { this.plugin.settings.language = value as "en" | "nl"; await this.plugin.saveSettings(); this.display(); }));

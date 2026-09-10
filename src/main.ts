@@ -95,7 +95,7 @@ export default class ContextFlowPlugin extends Plugin {
     if (conditions.requiresNoSelection && hasSelection) return false;
     if (conditions.folder && !file.path.startsWith(conditions.folder)) return false;
     if (conditions.tag && !tags.includes(conditions.tag.startsWith("#") ? conditions.tag : `#${conditions.tag}`)) return false;
-    if (conditions.property) { const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined; const value: unknown = frontmatter?.[conditions.property.key]; if (value === undefined || (conditions.property.value !== undefined && String(value) !== conditions.property.value)) return false; }
+    if (conditions.property) { const frontmatter = cache?.frontmatter; const value = frontmatter?.[conditions.property.key]; if (value === undefined || (conditions.property.value !== undefined && String(value) !== conditions.property.value)) return false; }
     if (conditions.dailyNoteOnly && !/^\d{4}[-_]\d{2}[-_]\d{2}/.test(file.basename)) return false;
     if (conditions.taskOnly && !/^\s*- \[[ xX]\]\s/.test(view.editor.getLine(view.editor.getCursor().line))) return false;
     if (conditions.desktopOnly && Platform.isMobile) return false;
